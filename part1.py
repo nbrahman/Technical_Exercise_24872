@@ -19,14 +19,15 @@ class clsPart1:
         strIndCode (string) - An Indicator code indicating Economic Time Series to be read from WBG Databank
     It returns a dictionary object with dataframe with data from file, and exceptions if any.
     """
-    def __readWBGData (self, paramStrIndCode, paramIntFromYear=1960, paramIntDB=2) -> dict:
+    def __readWBGData (self, paramIntFromYear=1960) -> dict:
         dfData = None
         dictRet = {}
         strException = ""
         try:
-            dfData = wb.data.DataFrame(series=paramStrIndCode, time=range(paramIntFromYear, datetime.now().year), 
-                                       economy=["WLD", "UMC", "LMC", "HIC", "LIC"], 
-                                       skipBlanks=True, labels=True, numericTimeKeys=True, db=paramIntDB)
+            # code for data extraction, transformation, and wrangling
+            dfData = wb.data.DataFrame(series=self.__strSeriesCode, time=range(paramIntFromYear, datetime.now().year), 
+                                       economy=self.__lstEconomies, 
+                                       skipBlanks=True, labels=True, numericTimeKeys=True, db=self.__intDB)
             dfData = dfData.reset_index()
             lstCols = list(dfData.columns)
             dfData = dfData.melt(id_vars=[lstCols[0], lstCols[1]])
@@ -36,6 +37,7 @@ class clsPart1:
                 dfData.fillna("")
                 dfData["Year"] = pd.to_numeric(dfData["Year"])
 
+            #code for plotly visualization
             cht = px.line(dfData, x="Year", y="Value", color="Economy Name", 
                           labels={"Year": "Years", "Value": "People using basic sanitation services (% of population) (SH.STA.BASS.ZS)"}, 
                           title="<b>Access to basic sanitation services</b>",
@@ -50,12 +52,9 @@ class clsPart1:
             cht.update_yaxes(ticks="inside", col=1, showgrid=False, showline=True, linewidth=1, linecolor="black", 
                              zeroline=True, zerolinewidth=1, zerolinecolor="black", range=[0, 100])
             cht.show()
-            cht.write_image(".\\test1.jpg")
         except Exception as e:
             self.__addErrors("clsPart1: Error - Unable to read data from World Bank Group Data Bank\nclsPart1: Exception details\n{}\n{}\n{}\n{}\n".format(type(e), e.args, e, traceback.format_exc()))
         finally:
-            #print(dfData.shape)
-            #print(dfData.columns)
             dictRet["data"] = dfData
             dictRet["exception"] = strException
             return dictRet
@@ -87,18 +86,19 @@ class clsPart1:
 
     """
     Constructor to initialize Debt Dashboard objects. It accepts
-        paramStrCntryFile: Country Metadata File Name along with Full Path.
-        paramStrDestFileName: Final Output File Name along with Full Path.
+        paramStrSeriesCode: Series code for which data needs to be extracted.
         paramIntFromYear: Starting Year to extract data.
-        paramIntToYear: Ending Year to extract data.
     """
-    def __init__(self, paramIntFromYear=2000):
+    def __init__(self, paramStrSeriesCode="SH.STA.BASS.ZS", paramLstEconomies=["WLD", "UMC", "LMC", "HIC", "LIC"], paramIntFromYear=2000, paramIntDB=2):
         self.__dictErrors = {}
-        dictData = self.__readWBGData("SH.STA.BASS.ZS", paramIntFromYear, paramIntDB=2)
+        self.__strSeriesCode = paramStrSeriesCode
+        self.__lstEconomies = paramLstEconomies
+        self.__intDB = paramIntDB
+        dictData = self.__readWBGData(paramIntFromYear)
 
 def main():
     try:
-        obj = clsPart1(paramIntFromYear=1960)
+        obj = clsPart1(paramStrSeriesCode="SH.STA.BASS.ZS", paramLstEconomies=["WLD", "UMC", "LMC", "HIC", "LIC"], paramIntFromYear=1960, paramIntDB=2)
     finally:
         obj.displayErrors()
 
